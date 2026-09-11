@@ -1,4 +1,4 @@
-Why do I cry? — Mobile Edition
+Why do I cry? — Mobile Edition V5
 
 1. ZIP 파일을 먼저 전부 압축 해제하세요.
 2. 폴더 안의 index.html을 Chrome, Edge, Safari 또는 Firefox에서 여세요.
@@ -13,6 +13,9 @@ Why do I cry? — Mobile Edition
 - 서버 창에 표시되는 주소를 휴대폰 브라우저에 입력하세요.
 - 실행 중인 PC와 서버 창을 켜 두세요. 종료는 Ctrl+C입니다.
 
+이번 버전은 A 네 갈래와 B 세 갈래를 포함한 아홉 가지 결말을 담고 있습니다.
+B의 수첩·전화번호 선택은 제거했고, 휴대폰은 귀환 사실을 알리는 실용적인 장치로만 사용합니다.
+
 백업:
 - 게임의 저장 메뉴 → 전체 진행 내려받기
 - 다른 기기에서 저장 메뉴 → 백업 파일 불러오기
@@ -21,6 +24,7 @@ Why do I cry? — Mobile Edition
 
 소스: src/ 안의 파일을 수정한 뒤 index.html을 새로고침하세요.
 스토리보드: docs/storyboard.html (전체 엔딩 스포일러 포함)
+전체 이야기 원고: docs/story.md (선택 경로별 읽기용)
 실행 안내와 파일 구성: README.md
 
 이 압축본은 사용자의 이름, 연락처, 계정 정보, 원문 게시물 주소,

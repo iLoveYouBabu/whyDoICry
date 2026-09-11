@@ -37,8 +37,9 @@ const fixtures = [
   ['b_reunion', { two_paths: 1, b_first_days: 1, b_autumn_plan: 1 }],
   ['b_friend', { two_paths: 1, b_winter: 1, b_spring_question: 1 }],
   ['b_friend', { two_paths: 1, b_spring_question: 1 }],
-  ['b_friend', { two_paths: 1, b_promise: 1, b_autumn_plan: 1 }],
-  ['b_friend', { two_paths: 1, b_storm: 1 }],
+  ['b_late', { two_paths: 1, b_promise: 1, b_autumn_plan: 1 }],
+  ['b_late', { two_paths: 1, b_storm: 1 }],
+  ['b_late', { two_paths: 1, b_promise: 1, b_autumn_plan: 1, b_storm: 0, b_call: 0 }],
   ['stay', { two_paths: 1, b_storm: 2 }],
   ['stay', { two_paths: 1, b_call: 2 }],
   ['together', { two_paths: 1, b_call: 1 }],
@@ -58,10 +59,11 @@ for (const rendezvous of ['lake','cabin','unspecified']) for (const departure of
 let friendTruthTableCases = 0;
 for (const bCommitted of [false,true]) for (const bPromise of [false,true])
 for (const departure of ['call','message']) {
-  const expected = bCommitted && bPromise && departure === 'call' ? 'b_reunion' : 'b_friend';
+  const bParting = departure === 'call';
+  const expected = bCommitted && bPromise && bParting ? 'b_reunion' : bCommitted ? 'b_late' : 'b_friend';
   for (const bConfessed of [false,true]) for (const bTaste of ['ask','remember'])
   for (const honest of [false,true]) for (const research of [false,true]) {
-    assert.equal(game.outcomeFor({route:'b',bCommitted,bPromise,departure,bConfessed,bTaste,honest,research}),expected,'friend route has only its three stated gates');
+    assert.equal(game.outcomeFor({route:'b',bCommitted,bPromise,bParting,departure,bConfessed,bTaste,honest,research}),expected,'B route gates only use the stated relationship choices');
     friendTruthTableCases++;
   }
 }
@@ -117,8 +119,10 @@ for (const [expected, route] of fixtures) {
     for (const id of ['winter','spring','rendezvous','her_waiting','returned']) assert.ok(!routeScenes.has(id),'no A romance scenes in B route');
     if (route.b_spring_question === 1) assert.equal(state.flags.bCommitted, false, 'spring friendship supersedes a winter confession');
     if (route.b_promise === 1 && route.b_autumn_plan !== 1) assert.ok(state.memories.includes('friend_plan'),'autumn repair collects the promise');
-    if (state.ending === 'b_reunion' || state.ending === 'b_friend') {
+    if (['b_reunion', 'b_friend', 'b_late'].includes(state.ending)) {
       for (const id of ['b_year_2025','b_house_sale','b_lending','b_airport_a','b_airport_departure']) assert.ok(routeScenes.has(id), 'the loop closes before the B outcome');
+      if (state.ending === 'b_late') assert.ok(routeScenes.has('b_changed_days'), 'late ending shows the changed heart during the wait');
+      else assert.ok(!routeScenes.has('b_changed_days'), 'other B endings do not borrow the late-heart scene');
       const history = game.transcript(state);
       assert.ok(history.some(row => row.speaker === '친구의 기억'), 'B narration labeled correctly');
       assert.ok(history.some(row => row.speaker === '그녀의 기억'), 'airport A narration remains distinct');
@@ -145,7 +149,7 @@ for (const [id, scene] of Object.entries(SCENES)) {
     for (const text of [line.text, line.yes, line.no].filter(Boolean)) {
       for (const width of [320, 390, 600, 1024]) for (const font of [18, 20, 23, 26]) {
         const formatted = game.sentenceLines(text);
-        const pages = paginate(formatted, width, font);
+        const pages = paginate(formatted, width, font, { speech: !!line.speaker });
         assert.equal(pages.map(p => p.text).join(''), formatted, 'pagination loses no text at any size');
         assert.ok(pages.every(p => p.text.length > 0));
         assert.equal(pages[0].start, 0);
@@ -171,6 +175,7 @@ for (const mutate of [
   x => { x.version = 1; },
   x => { x.version = 2; },
   x => { x.version = 3; },
+  x => { x.version = 4; },
   x => { x.saves.auto.state.node = '__proto__'; },
   x => { x.saves.auto.state.flags.unrecognized = true; },
   x => { x.saves.auto.state.flags.recorded = 'yes'; },
@@ -214,7 +219,7 @@ for (const width of [320, 390, 768, 1100]) {
       let expected = 0, total = null;
       scene.lines.forEach((line, index) => {
         state.index = index;
-        const pages = paginate(game.lineText(line, state.flags), width, font);
+        const pages = paginate(game.lineText(line, state.flags), width, font, { speech: !!line.speaker });
         for (const page of pages) {
           const reading = game.readingProgress(state, page.start, width, font);
           assert.equal(reading.current, ++expected, 'counter advances once per displayed page');
@@ -227,6 +232,16 @@ for (const width of [320, 390, 768, 1100]) {
       assert.equal(expected, total, 'last page reaches the scene total');
     }
   }
+}
+for (const width of [320, 390, 768]) for (const font of [18, 23, 26]) {
+  const quoted = '“' + '긴 대사가 한 페이지를 넘더라도 문장과 인용부호가 끊기지 않도록 이어지는 말이다. '.repeat(8) + '”';
+  const speechPages = paginate(quoted, width, font, { speech: true });
+  assert.equal(speechPages.length, 1, 'spoken turn remains one intact unit for scrolling');
+  assert.equal(speechPages[0].text, quoted);
+  const prose = game.sentenceLines('첫 문장이다. 다음 문장이다. 마지막 문장이다.');
+  const prosePages = paginate(prose, width, font);
+  assert.equal(prosePages.map(p => p.text).join(''), prose);
+  assert.ok(prosePages.every(p => !/^”/.test(p.text) && !/^\s*[.!?。]/.test(p.text)), 'pages do not start with a closing quote or punctuation');
 }
 const report = {
   result: 'PASS', scenes: visited.size, choicePoints: Object.values(SCENES).filter(s => s.choices).length,

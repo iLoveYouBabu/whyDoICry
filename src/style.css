@@ -17,7 +17,7 @@ dialog{color:var(--ink);border:1px solid #465568;border-radius:10px;background:#
 
 /* Keep reading text stable across mobile text autosizing and story surfaces. */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-.prose,.choice-heading,.choice,.ending-quote,.memory-card p,.history-row p{
+.prose,.ending-quote,.memory-card p,.history-row p{
   font-family:'Iowan Old Style','AppleMyungjo','Batang',serif;
   font-size:var(--prose-size);
   font-weight:400;
@@ -26,3 +26,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 }
 .choice-heading{flex-shrink:0}
 .page-count{white-space:nowrap;flex-shrink:0}
+
+/* Choice controls keep their own reading size. */
+.choice{font-family:inherit;font-size:16px;font-weight:400;line-height:1.5;letter-spacing:normal}
+.choice-heading{font-family:'AppleMyungjo','Batang',serif;font-size:18px;line-height:1.65}
+@media(max-width:600px){.choice-heading{font-size:17px}}
+.page-count{letter-spacing:0;display:inline-block}

@@ -1,16 +1,16 @@
 {
   "result": "PASS",
-  "scenes": 96,
+  "scenes": 99,
   "choicePoints": 23,
   "choiceEdges": 52,
-  "mainEndings": 7,
+  "mainEndings": 8,
   "collapseEndings": 1,
-  "routeFixtures": 28,
+  "routeFixtures": 29,
   "truthTableCases": 96,
   "friendTruthTableCases": 128,
-  "validatedTransitions": 4808,
-  "largestExampleSaveBytes": 175471,
+  "validatedTransitions": 5050,
+  "largestExampleSaveBytes": 174413,
   "assets": 29,
-  "browserTesting": "Not performed; verification covers story, save data, pagination and static asset references.",
-  "readingCounterCases": 8799
+  "readingCounterCases": 8552,
+  "browserTesting": "Not performed; verification covers story, save data, pagination and static asset references."
 }

@@ -7,6 +7,7 @@
   <meta name="description" content="공항의 낯선 인사에서 시작되는 시간여행 로맨스 비주얼노벨.">
   <title>Why do I cry?</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="assets/lake-empty.webp" type="image/webp" fetchpriority="high">
   <link rel="stylesheet" href="src/style.css">
   <script defer src="src/story.js"></script>
   <script defer src="src/engine.js"></script>
@@ -14,7 +15,7 @@
   <script defer src="src/app.js"></script>
 </head>
 <body>
-  <div id="scene" aria-hidden="true"><div id="scene-wash"></div><img id="scene-art" alt=""><div class="scene-shade"></div></div>
+  <div id="scene" aria-hidden="true"><div id="scene-wash"></div><img id="scene-art" alt="" fetchpriority="high" decoding="async"><div class="scene-shade"></div></div>
   <main id="app"><noscript>이 게임을 실행하려면 브라우저의 JavaScript를 켜 주세요.</noscript></main>
   <dialog id="dialog" aria-labelledby="dialog-title"><div id="dialog-content"></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

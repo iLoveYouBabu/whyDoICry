@@ -1,6 +1,6 @@
 {
   "method": "Built-in image generation",
-  "description": "Mobile scene composites. Original photographs and identifying file paths are excluded.",
+  "description": "Mobile scene composites. A-side edits preserve the supplied source expressions; B-side revisions use the existing in-game B frames as identity references because the original B uploads were not available in this workspace. Original photographs and identifying file paths are excluded.",
   "assets": {
     "lake-empty": {
       "output": "assets/lake-empty.webp",

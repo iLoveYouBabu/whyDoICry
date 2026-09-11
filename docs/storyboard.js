@@ -11,7 +11,7 @@
   document.getElementById('counts').textContent = `${Object.keys(SCENES).length}개 장면 · ${Object.values(SCENES).filter(s=>s.choices).length}개 분기점 · 메인 엔딩 ${count('main')}개 · 세계 붕괴 ${count('collapse')}개`;
   document.getElementById('endings').innerHTML = Object.entries(ENDINGS).map(([id,end])=>`<tr><td>${e(end.label)}</td><td>${endingNodes(id).map(([node])=>target(node,`${end.order} · ${end.name} / ${routeName(node)}`)).join('<br>')}</td><td>${e(end.note)}${end.variants?.b ? `<br>친구 루트: ${e(end.variants.b.note)}` : ''}</td></tr>`).join('');
   document.getElementById('chapters').innerHTML = chapters.map((chapter,i)=>`<a href="#chapter-${i}">${chapter} ${labels[chapter]}</a>`).join('');
-  const conditions = { reunion:'진실·준비·장소·마주한 작별 모두 충족',missed:'진실과 작별은 나눴지만 준비 또는 장소가 불완전',departure:'진실을 끝내 숨기거나 메시지만 남긴 작별',b_reunion:'봄의 고백·돌아온 뒤의 약속·마주한 작별 모두 충족',b_friend:'친구로 남겠다고 대답했거나 약속·작별이 미완성' };
+  const conditions = { reunion:'진실·준비·장소·마주한 작별 모두 충족',missed:'진실과 작별은 나눴지만 준비 또는 장소가 불완전',departure:'진실을 끝내 숨기거나 메시지만 남긴 작별',b_reunion:'봄의 고백·돌아온 뒤의 약속·마주한 작별 모두 충족',b_friend:'처음부터 친구로 남기로 정한 현재의 관계',b_late:'과거의 사랑은 남았지만 기다림 속 마음이 달라져 현재에는 친구를 선택' };
   function links(scene) {
     if(scene.ending) { const end=ENDINGS[scene.ending]; return `<p class="ending">${e(end.label)} · ${e(end.name)}</p>`; }
     if(scene.choices) return `<p class="prompt">${e(scene.prompt)}</p><div class="scene-links">${scene.choices.map((c,i)=>target(c.next,`${i+1}. ${c.text}`)).join('')}</div>`;

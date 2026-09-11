@@ -6,7 +6,7 @@
   const dialog = $('#dialog');
   const dialogContent = $('#dialog-content');
   const audio = new NovelAudio();
-  const STORAGE_KEY = 'wdic-mobile-v4';
+  const STORAGE_KEY = 'wdic-mobile-v5';
   const FORMAT = 'why-do-i-cry-mobile';
   const ART = {
     'b-meeting': { file: 'b-meeting.webp' },
@@ -57,7 +57,7 @@
   let progress = freshProgress();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw && (localStorage.getItem('wdic-mobile-v3') || localStorage.getItem('wdic-mobile-v2'))) recoveryNotice = '친구의 이야기가 추가되어 이번 판은 새로 시작합니다. 이전 판의 저장 데이터는 삭제하지 않았어요.';
+    if (!raw && (localStorage.getItem('wdic-mobile-v4') || localStorage.getItem('wdic-mobile-v3') || localStorage.getItem('wdic-mobile-v2'))) recoveryNotice = '스토리와 분기가 업데이트되어 이번 판은 새로 시작합니다. 이전 판의 저장 데이터는 삭제하지 않았어요.';
     if (raw) {
       const parsed = JSON.parse(raw);
       if (validProgress(parsed)) progress = parsed;
@@ -80,6 +80,7 @@
   let typeTimer, playTimer, toastTimer, resizeTimer;
   let choiceReadyAt = 0;
   let currentArt = '';
+  const warmedArt = new Set();
   let originFocus;
   let importCandidate = null;
   let galleryEnding = null;
@@ -103,6 +104,40 @@
     $('#toast').classList.add('visible');
     toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 3600);
   }
+  function artUrl(key) {
+    const art = ART[key] || ART['lake-empty'];
+    return `assets/${art.file}`;
+  }
+  function warmArt(key) {
+    if (!ART[key]) return;
+    const url = artUrl(key);
+    if (warmedArt.has(url)) return;
+    warmedArt.add(url);
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = url;
+  }
+  function queueArt(scene, index) {
+    const keys = [];
+    scene.lines.slice(index + 1, index + 4).forEach(line => { if (line.art) keys.push(line.art); });
+    if (scene.choices) scene.choices.forEach(choice => {
+      const target = SCENES[choice.next];
+      if (target?.art) keys.push(target.art);
+    });
+    const next = scene.next;
+    if (typeof next === 'string') {
+      if (SCENES[next]?.art) keys.push(SCENES[next].art);
+    } else if (Array.isArray(next)) {
+      next.forEach(entry => { if (SCENES[entry.to]?.art) keys.push(SCENES[entry.to].art); });
+    } else if (next?.to) {
+      Object.values(next.to).forEach(id => { if (SCENES[id]?.art) keys.push(SCENES[id].art); });
+    }
+    const unique = [...new Set(keys)].filter(key => ART[key]).slice(0, 3);
+    if (!unique.length) return;
+    const run = () => unique.forEach(warmArt);
+    if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 1000 });
+    else setTimeout(run, 0);
+  }
   function setArt(key, mood = '') {
     const art = ART[key] || ART['lake-empty'];
     $('#scene').dataset.mood = mood;
@@ -110,7 +145,9 @@
     $('#scene').dataset.wide = String(!!art.wide);
     if (currentArt === key) return;
     currentArt = key;
-    const url = `assets/${art.file}`;
+    const url = artUrl(key);
+    warmArt(key);
+    $('#scene-art').fetchPriority = 'high';
     $('#scene-art').src = url;
     $('#scene-wash').style.backgroundImage = `url("${url}")`;
   }
@@ -138,6 +175,7 @@
     const f = currentFrame(state);
     const { scene, line, text, isChoice } = f;
     setArt(f.art, scene.mood);
+    queueArt(scene, state.index);
     if (skipping && (isChoice || !seen.has(frameKey(state)))) {
       skipping = false;
       if (!isChoice) toast('처음 보는 문장에서 멈췄어요.');
@@ -148,7 +186,7 @@
       progress.bookmarks[state.node] = snapshot(state);
       persist();
     } else {
-      pages = WDIC.paginate(text, innerWidth, progress.prefs.font);
+      pages = WDIC.paginate(text, innerWidth, progress.prefs.font, { speech: !!line.speaker });
       pageIndex = lastPage ? pages.length - 1 : Math.max(0, pages.findLastIndex(page => page.start <= offset));
       offset = pages[pageIndex].start;
       fullPage = pages[pageIndex].text;
@@ -156,7 +194,7 @@
     const reading = isChoice ? null : WDIC.readingProgress(state, offset, innerWidth, progress.prefs.font);
     app.innerHTML = `<section class="game-screen"><header class="game-header"><div class="chapter"><span class="chapter-num">${scene.chapter}</span><div><p class="eyebrow">${scene.pov ? 'Her side' : 'His side'}</p><h1>${escape(scene.title)}</h1></div></div><div class="header-tools">${soundButton()}<button class="utility" data-action="memories" aria-label="남겨 둔 기록">${icon('phone')}<span>기록</span></button></div></header>
       <div class="location"><span>${escape(scene.place)}</span><time>${escape(scene.date)}</time></div>${scene.pov ? `<p class="pov-label">${escape(scene.pov)}의 시점</p>` : ''}<div class="art-space"></div>
-      <div class="reader-area">${isChoice ? `<section class="reader-panel choice-panel" aria-labelledby="choice-prompt"><p class="eyebrow">Your choice</p><h2 class="choice-heading" id="choice-prompt">${escape(scene.prompt)}</h2><div class="choices">${scene.choices.map((choice, i) => `<button class="choice" data-action="choose" data-index="${i}"><span class="choice-number">0${i + 1}</span><span>${escape(choice.text)}</span>${icon('arrow')}</button>`).join('')}</div><p class="choice-note">선택 직전에 자동으로 저장됩니다.</p></section>` : `<section class="reader-panel" aria-label="이야기"><div class="speaker-row"><span class="speaker">${escape(line.speaker || (scene.pov ? `${scene.pov}의 기억` : '나의 기억'))}</span><span class="page-count" aria-label="이 장면의 읽기 진행">${reading.current} / ${reading.total}</span></div><div class="copybox" tabindex="0" aria-label="대사 내용"><p class="prose prose-ghost" aria-hidden="true">${escape(fullPage)}</p><p class="prose prose-live" id="prose" aria-hidden="true"></p><p class="sr-only" role="status" aria-live="polite" aria-atomic="true">${escape(fullPage)}</p></div><div class="dialogue-bottom"><span class="reading-hint">화면을 눌러 계속 · 드래그는 스크롤</span><button class="next-button" data-action="next">계속 ${icon('arrow')}</button></div></section>`}
+      <div class="reader-area">${isChoice ? `<section class="reader-panel choice-panel" aria-labelledby="choice-prompt"><p class="eyebrow">Your choice</p><h2 class="choice-heading" id="choice-prompt">${escape(scene.prompt)}</h2><div class="choices">${scene.choices.map((choice, i) => `<button class="choice" data-action="choose" data-index="${i}"><span class="choice-number">0${i + 1}</span><span>${escape(choice.text)}</span>${icon('arrow')}</button>`).join('')}</div><p class="choice-note">선택 직전에 자동으로 저장됩니다.</p></section>` : `<section class="reader-panel" aria-label="이야기"><div class="speaker-row"><span class="speaker">${escape(line.speaker || (scene.pov ? `${scene.pov}의 기억` : '나의 기억'))}</span><span class="page-count" aria-label="읽기 진행">${reading.current} / ${reading.total}</span></div><div class="copybox" tabindex="0" aria-label="대사 내용"><p class="prose prose-ghost" aria-hidden="true">${escape(fullPage)}</p><p class="prose prose-live" id="prose" aria-hidden="true"></p><p class="sr-only" role="status" aria-live="polite" aria-atomic="true">${escape(fullPage)}</p></div><div class="dialogue-bottom"><span class="reading-hint">화면을 눌러 계속 · 긴 대사는 위아래로 스크롤</span><button class="next-button" data-action="next">계속 ${icon('arrow')}</button></div></section>`}
       <nav class="reader-toolbar" aria-label="읽기 도구"><button data-action="back" ${!state.trail.length && !offset ? 'disabled' : ''}>${icon('back')}이전</button><button data-action="auto" class="${auto ? 'active' : ''}" aria-pressed="${auto}">${icon(auto ? 'pause' : 'play')}자동</button><button data-action="skip" class="${skipping ? 'active' : ''}" aria-pressed="${skipping}">${icon('skip')}읽은 글</button><button data-action="saves">${icon('save')}저장</button><button data-action="menu">${icon('menu')}메뉴</button></nav></div><button class="peek-exit" data-action="peek-exit">이야기로 돌아가기</button></section>`;
     if (!isChoice) startTyping(instant || skipping);
     else if (focusChoices) $('.choice')?.focus({ preventScroll: true });
@@ -177,7 +215,9 @@
     tick();
   }
   function pageFinished() {
-    if (pageIndex === pages.length - 1) { seen.add(frameKey(state)); writeProgress(); }
+    const box = $('.copybox');
+    const atBottom = !box || box.scrollTop + box.clientHeight >= box.scrollHeight - 4;
+    if (pageIndex === pages.length - 1 && atBottom) { seen.add(frameKey(state)); writeProgress(); }
     schedulePlayback();
   }
   function reveal() {
@@ -192,11 +232,19 @@
     if (skipping) playTimer = setTimeout(nextBeat, 180);
     else if (auto) playTimer = setTimeout(nextBeat, Math.max(2200, fullPage.length * 85));
   }
+  function copyboxAtBottom(box) { return !box || box.scrollTop + box.clientHeight >= box.scrollHeight - 4; }
+  function revealNextScroll() {
+    const box = $('.copybox');
+    if (!box || copyboxAtBottom(box)) return false;
+    box.scrollBy({ top: Math.max(72, box.clientHeight * .82), behavior: 'smooth' });
+    return true;
+  }
   function nextBeat() {
     if (screen !== 'game' || dialog.open || document.body.classList.contains('peeking')) return;
     if (typing) return reveal();
     if (performance.now() - lastStepAt < 120) return;
     if (currentFrame(state).isChoice) return;
+    if (revealNextScroll()) return;
     lastStepAt = performance.now();
     if (pageIndex < pages.length - 1) {
       offset = pages[pageIndex + 1].start;
@@ -317,8 +365,8 @@
       const parsed = JSON.parse(await file.text());
       if (!validProgress(parsed)) throw new Error('invalid');
       importCandidate = parsed;
-      openDialog('백업을 불러올까요?', `<p class="fine-print">저장칸 ${Object.keys(parsed.saves).length}개, 엔딩 ${Object.keys(parsed.endings).length}개가 있습니다.\n이 브라우저의 현재 V4 진행을 백업 내용으로 교체합니다.</p><div class="backup-buttons"><button class="plain-button" data-action="export">현재 진행 먼저 내려받기</button><button class="solid-button" data-action="import-confirm">백업으로 교체하기</button><button class="plain-button" data-action="saves">취소</button></div>`);
-    } catch { importCandidate = null; toast('호환되는 V4 백업이 아닙니다. 현재 진행은 그대로 두었어요.'); }
+      openDialog('백업을 불러올까요?', `<p class="fine-print">저장칸 ${Object.keys(parsed.saves).length}개, 엔딩 ${Object.keys(parsed.endings).length}개가 있습니다.\n이 브라우저의 현재 V5 진행을 백업 내용으로 교체합니다.</p><div class="backup-buttons"><button class="plain-button" data-action="export">현재 진행 먼저 내려받기</button><button class="solid-button" data-action="import-confirm">백업으로 교체하기</button><button class="plain-button" data-action="saves">취소</button></div>`);
+    } catch { importCandidate = null; toast('호환되는 V5 백업이 아닙니다. 현재 진행은 그대로 두었어요.'); }
   });
   async function handleAction(action, button, event) {
     switch (action) {
@@ -432,6 +480,10 @@
     pointer = null;
   });
   app.addEventListener('pointercancel', () => { pointer = null; });
+  app.addEventListener('scroll', event => {
+    const box = event.target.closest?.('.copybox');
+    if (box && screen === 'game' && !typing && pageIndex === pages.length - 1 && copyboxAtBottom(box)) pageFinished();
+  }, true);
   document.addEventListener('keydown', event => {
     if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.target.closest('input,textarea,select')) return;
     if (dialog.open) return;

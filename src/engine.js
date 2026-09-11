@@ -140,34 +140,50 @@
     const f = currentFrame(save.state);
     return Number.isInteger(save.offset) && save.offset >= 0 && (f.text ? save.offset < f.text.length : save.offset === 0);
   }
-  function paginate(text, viewportWidth, fontSize) {
-    const width = Math.min(viewportWidth - (viewportWidth <= 600 ? 56 : 112), 720);
-    const columns = Math.max(8, Math.floor(width / fontSize));
-    const result = [];
-    let start = 0;
-    while (start < text.length) {
-      let end = start, row = 1, used = 0, sentences = 0;
-      while (end < text.length) {
-        const char = text[end];
-        if (char === '\n') { end++; row++; used = 0; sentences++; if (row > 4 || sentences >= 2) break; }
-        else { const units = /[\x00-\x7F]/.test(char) ? .6 : 1; if (used + units > columns) { row++; used = 0; } if (row > 4) break; used += units; end++; }
-      }
-      if (end < text.length && text[end - 1] !== '\n') {
-        const segment = text.slice(start, end);
-        const boundary = Math.max(segment.lastIndexOf(' '), segment.lastIndexOf('\n'));
-        if (boundary > segment.length * .55) end = start + boundary + 1;
-      }
-      if (end === start) end++;
-      result.push({ start, text: text.slice(start, end) });
-      start = end;
+  function sentenceUnits(text) {
+    const pairs = { '“': '”', '‘': '’', '「': '」', '『': '』' };
+    const closing = new Set(Object.values(pairs));
+    const stack = [], units = [];
+    let start = 0, ended = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') { if (stack.at(-1) === char) stack.pop(); else stack.push(char); }
+      else if (pairs[char]) stack.push(pairs[char]);
+      else if (char === stack.at(-1)) stack.pop();
+      const decimal = char === '.' && /\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '');
+      if (/[.!?。…]/.test(char) && !decimal) ended = true;
+      else if (!/\s/.test(char) && !closing.has(char) && char !== '"') ended = false;
+      if (stack.length || !ended) continue;
+      if (/[.!?。…]/.test(text[i + 1] || '') || closing.has(text[i + 1]) || text[i + 1] === '"') continue;
+      if (i + 1 < text.length && !/\s/.test(text[i + 1])) continue;
+      while (i + 1 < text.length && /\s/.test(text[i + 1])) i++;
+      units.push({ start, text: text.slice(start, i + 1) });
+      start = i + 1; ended = false;
     }
-    return result;
+    if (start < text.length) units.push({ start, text: text.slice(start) });
+    return units;
+  }
+  function paginate(text, viewportWidth, fontSize, { speech = false } = {}) {
+    if (!text) return [];
+    // A spoken turn, a quoted passage or an oversized sentence remains intact.
+    // The reader can scroll when a complete unit is taller than the text area.
+    if (speech) return [{ start: 0, text }];
+    const width = Math.min(viewportWidth - (viewportWidth <= 600 ? 56 : 112), 720);
+    const budget = Math.max(8, Math.floor(width / fontSize)) * 4;
+    const size = value => Array.from(value).reduce((n, c) => n + (c === '\n' ? fontSize / 2 : /[\x00-\x7F]/.test(c) ? .6 : 1), 0);
+    const pages = [];
+    for (const unit of sentenceUnits(text)) {
+      const previous = pages.at(-1);
+      if (previous && size(previous.text + unit.text) <= budget) previous.text += unit.text;
+      else pages.push({ ...unit });
+    }
+    return pages;
   }
   function readingProgress(state, offset, viewportWidth, fontSize) {
     const scene = SCENES[state.node];
     let current = 0, total = 0;
     scene.lines.forEach((line, index) => {
-      const pages = paginate(lineText(line, state.flags), viewportWidth, fontSize);
+      const pages = paginate(lineText(line, state.flags), viewportWidth, fontSize, { speech: !!line.speaker });
       if (index < state.index) current += pages.length;
       else if (index === state.index) current += Math.max(0, pages.findLastIndex(page => page.start <= offset)) + 1;
       total += pages.length;
