@@ -31,7 +31,7 @@
     'together-collapse': { file: 'together-collapse.webp' },
 
     airport: { file: 'airport.webp', wide: true }, cabin: { file: 'cabin.webp', wide: true },
-    'airport-her': { file: 'airport-her.webp' }, 'lake-empty': { file: 'lake-empty.webp' },
+    'airport-her': { file: 'airport-her.webp' }, 'lake-empty': { file: 'lake-empty.webp' }, crossroads: { file: 'crossroads.webp' },
     'lake-meeting': { file: 'lake-meeting.webp' }, 'cabin-winter': { file: 'cabin-winter.webp' },
     'guitar-spring': { file: 'guitar-spring.webp' }, 'lake-rain': { file: 'lake-rain.webp' }, birthday: { file: 'birthday.webp' },
   };
@@ -173,7 +173,7 @@
     if (state.ending) return renderEnding(state.ending);
     screen = 'game'; galleryEnding = null;
     const f = currentFrame(state);
-    const { scene, line, text, isChoice } = f;
+    const { scene, line, text, place, date, isChoice } = f;
     setArt(f.art, scene.mood);
     queueArt(scene, state.index);
     if (skipping && (isChoice || !seen.has(frameKey(state)))) {
@@ -193,7 +193,7 @@
     }
     const reading = isChoice ? null : WDIC.readingProgress(state, offset, innerWidth, progress.prefs.font);
     app.innerHTML = `<section class="game-screen"><header class="game-header"><div class="chapter"><span class="chapter-num">${scene.chapter}</span><div><p class="eyebrow">${scene.pov ? 'Her side' : 'His side'}</p><h1>${escape(scene.title)}</h1></div></div><div class="header-tools">${soundButton()}<button class="utility" data-action="memories" aria-label="남겨 둔 기록">${icon('phone')}<span>기록</span></button></div></header>
-      <div class="location"><span>${escape(scene.place)}</span><time>${escape(scene.date)}</time></div>${scene.pov ? `<p class="pov-label">${escape(scene.pov)}의 시점</p>` : ''}<div class="art-space"></div>
+      <div class="location"><span>${escape(place)}</span><time>${escape(date)}</time></div>${scene.pov ? `<p class="pov-label">${escape(scene.pov)}의 시점</p>` : ''}<div class="art-space"></div>
       <div class="reader-area">${isChoice ? `<section class="reader-panel choice-panel" aria-labelledby="choice-prompt"><p class="eyebrow">Your choice</p><h2 class="choice-heading" id="choice-prompt">${escape(scene.prompt)}</h2><div class="choices">${scene.choices.map((choice, i) => `<button class="choice" data-action="choose" data-index="${i}"><span class="choice-number">0${i + 1}</span><span>${escape(choice.text)}</span>${icon('arrow')}</button>`).join('')}</div><p class="choice-note">선택 직전에 자동으로 저장됩니다.</p></section>` : `<section class="reader-panel" aria-label="이야기"><div class="speaker-row"><span class="speaker">${escape(line.speaker || (scene.pov ? `${scene.pov}의 기억` : '나의 기억'))}</span><span class="page-count" aria-label="읽기 진행">${reading.current} / ${reading.total}</span></div><div class="copybox" tabindex="0" aria-label="대사 내용"><p class="prose prose-ghost" aria-hidden="true">${escape(fullPage)}</p><p class="prose prose-live" id="prose" aria-hidden="true"></p><p class="sr-only" role="status" aria-live="polite" aria-atomic="true">${escape(fullPage)}</p></div><div class="dialogue-bottom"><span class="reading-hint">화면을 눌러 계속 · 긴 대사는 위아래로 스크롤</span><button class="next-button" data-action="next">계속 ${icon('arrow')}</button></div></section>`}
       <nav class="reader-toolbar" aria-label="읽기 도구"><button data-action="back" ${!state.trail.length && !offset ? 'disabled' : ''}>${icon('back')}이전</button><button data-action="auto" class="${auto ? 'active' : ''}" aria-pressed="${auto}">${icon(auto ? 'pause' : 'play')}자동</button><button data-action="skip" class="${skipping ? 'active' : ''}" aria-pressed="${skipping}">${icon('skip')}읽은 글</button><button data-action="saves">${icon('save')}저장</button><button data-action="menu">${icon('menu')}메뉴</button></nav></div><button class="peek-exit" data-action="peek-exit">이야기로 돌아가기</button></section>`;
     if (!isChoice) startTyping(instant || skipping);

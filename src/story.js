@@ -271,7 +271,9 @@
       {
         "text": "다음 날 아침, 신호가 돌아왔다.\n2023년 9월 30일.\n전원을 껐다 켜도 날짜는 바뀌지 않았다.",
         "memory": "date",
-        "art": "lake-empty"
+        "place": "산장",
+        "date": "2023. 09. 30",
+        "art": "cabin"
       }
     ],
     "mood": "storm",
@@ -282,7 +284,7 @@
     "title": "세 해 전의 아침",
     "place": "산장 앞 · 갈림길",
     "date": "2023. 09. 30",
-    "art": "lake-empty",
+    "art": "crossroads",
     "lines": [
       {
         "text": "비는 그쳤다. 터널 쪽에서 고양이 우는 소리가 들렸다. 반대편 길은 버스가 다니는 마을로 이어졌다."
@@ -3441,7 +3443,7 @@
     return { ...ending, ...(ending.variants?.[flags.route] || {}) };
   }
   function sentenceLines(text) {
-    return text.replace(/([^\d.])([.!?。][”’」』"]?)[ \t]+(?=\S)/g, '$1$2\n');
+    return text.replace(/,([ \t]*)(?=\S)/g, ', ').replace(/([^\d.])([.!?。][”’」』"]?)[ \t]+(?=\S)/g, '$1$2\n');
   }
   function lineText(line, flags) {
     if (!line.flag) return sentenceLines(line.text);

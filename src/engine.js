@@ -14,7 +14,7 @@
     const scene = SCENES[state.node];
     const line = scene.lines[state.index];
     const art = [...scene.lines.slice(0, state.index + 1)].reverse().find(l => l.art)?.art || scene.art;
-    return { scene, line, art, text: line ? lineText(line, state.flags) : '', isChoice: !line && !!scene.choices, ending: state.ending };
+    return { scene, line, art, place: line?.place || scene.place, date: line?.date || scene.date, text: line ? lineText(line, state.flags) : '', isChoice: !line && !!scene.choices, ending: state.ending };
   }
   function collectMemory(state) {
     const { line } = currentFrame(state);
